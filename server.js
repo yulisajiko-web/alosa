@@ -7,13 +7,13 @@ const url = require('url');
 // Render portni o'zi beradi
 const PORT = process.env.PORT || 3000;
 
-// Render "Environment Variables" bo'limiga qo'ygan kalitingizni oladi
+// API Kalitni Render Environment Variables dan olamiz
 const API_KEY = process.env.API_KEY; 
 
 const server = http.createServer((req, res) => {
     
     // ---------------------------------------------------------
-    // 1. CHAT API (Matn yozish uchun)
+    // 1. CHAT API
     // ---------------------------------------------------------
     if (req.url.startsWith('/api/chat')) {
         if (req.method !== 'POST') {
@@ -25,7 +25,6 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const { message } = JSON.parse(body);
-                // Pollinations ga so'rov yuborish
                 const data = JSON.stringify({
                     messages: [{ role: 'user', content: message }],
                     model: 'openai', 
@@ -38,7 +37,7 @@ const server = http.createServer((req, res) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_KEY}` // Kalitni ishlatamiz
+                        'Authorization': `Bearer ${API_KEY}`
                     }
                 };
 
@@ -56,7 +55,7 @@ const server = http.createServer((req, res) => {
     }
 
     // ---------------------------------------------------------
-    // 2. IMAGE API (Rasm chizish uchun)
+    // 2. IMAGE API
     // ---------------------------------------------------------
     if (req.url.startsWith('/api/image')) {
         const queryObject = url.parse(req.url, true).query;
@@ -64,7 +63,6 @@ const server = http.createServer((req, res) => {
 
         if (!prompt) { res.writeHead(400); res.end('No prompt'); return; }
 
-        // Modelni tanlash (nanobanana-pro yoki flux)
         const model = 'nanobanana-pro'; 
         const seed = Math.floor(Math.random() * 1000000);
         
@@ -91,11 +89,14 @@ const server = http.createServer((req, res) => {
     }
 
     // ---------------------------------------------------------
-    // 3. FAYLLARNI OCHISH (ENG MUHIM QISM)
+    // 3. FAYLLARNI OCHISH (rasm.html)
     // ---------------------------------------------------------
     
-    // Agar saytga shunchaki kirsa ('/'), 'rasm.html' ni ochsin!
+    // Agar saytga shunchaki kirsa ('/'), 'rasm.html' ni ochsin
     let fileName = req.url === '/' ? 'rasm.html' : req.url;
+    
+    // Xavfsizlik uchun fayl nomini tozalash
+    fileName = fileName.replace(/^(\.\.[\/\\])+/, '');
     
     let filePath = path.join(__dirname, fileName);
     const ext = path.extname(filePath).toLowerCase();
@@ -114,20 +115,4 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     console.log(`Server ishga tushdi: ${PORT}`);
-});
-    fs.readFile(filePath, (err, content) => {
-        if (err) { 
-            // Agar fayl topilmasa 404 qaytaramiz
-            res.writeHead(404); res.end('File not found'); 
-        } 
-        else { 
-            res.writeHead(200, { 'Content-Type': mime[ext] || 'text/plain' }); 
-            res.end(content); 
-        }
-    });
-});
-
-// SERVERNI FAQAT SHU YERDA, BIR MARTA ISHGA TUSHIRAMIZ:
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
 });
